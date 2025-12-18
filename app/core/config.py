@@ -3,8 +3,7 @@ Application Configuration
 Zero-trust security settings and environment variables
 """
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
-from typing import Optional, List, Union
+from typing import Optional, List
 from functools import lru_cache
 import os
 
@@ -26,19 +25,25 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     TOKEN_ROTATION_ENABLED: bool = True
     
-    # CORS - Strict by default (supports comma-separated env var)
-    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:5173,http://localhost:3003"
-    
-    @field_validator('CORS_ORIGINS', mode='before')
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
-    
+    # CORS - Strict by default (comma-separated string for env var compatibility)
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://localhost:3003"
     CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE"]
-    CORS_ALLOW_HEADERS: list[str] = ["*"]
+    CORS_ALLOW_METHODS: str = "GET,POST,PUT,PATCH,DELETE"
+    CORS_ALLOW_HEADERS: str = "*"
+    
+    def get_cors_origins(self) -> List[str]:
+        """Parse CORS_ORIGINS string into list"""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+    
+    def get_cors_methods(self) -> List[str]:
+        """Parse CORS_ALLOW_METHODS string into list"""
+        return [method.strip() for method in self.CORS_ALLOW_METHODS.split(",")]
+    
+    def get_cors_headers(self) -> List[str]:
+        """Parse CORS_ALLOW_HEADERS string into list"""
+        if self.CORS_ALLOW_HEADERS == "*":
+            return ["*"]
+        return [header.strip() for header in self.CORS_ALLOW_HEADERS.split(",")]
     
     # Database - Default to SQLite for quick start
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./geofence_dev.db")
