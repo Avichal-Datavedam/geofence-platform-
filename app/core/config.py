@@ -3,7 +3,8 @@ Application Configuration
 Zero-trust security settings and environment variables
 """
 from pydantic_settings import BaseSettings
-from typing import Optional
+from pydantic import field_validator
+from typing import Optional, List, Union
 from functools import lru_cache
 import os
 
@@ -26,13 +27,15 @@ class Settings(BaseSettings):
     TOKEN_ROTATION_ENABLED: bool = True
     
     # CORS - Strict by default (supports comma-separated env var)
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:3003"]
+    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:5173,http://localhost:3003"
     
+    @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
+    
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
