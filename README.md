@@ -12,6 +12,95 @@ Production-grade FastAPI backend with React frontend for a geo-fencing platform 
 - **Real-time Tracking**: Asset tracking with trajectory history
 - **Proximity Detection**: Automatic notification generation for geofence breaches
 - **Modern Frontend**: React with map-based UI and AI chat integration
+- **Map Drawing Tools**: Lasso, Polygon, Rectangle, and Circle tools for creating geofences
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- **Python 3.11+**
+- **Node.js 18+**
+- **npm** or **yarn**
+
+---
+
+## Running Locally
+
+### Windows (PowerShell)
+
+```powershell
+# 1. Clone the repository
+git clone https://github.com/Avichal-Datavedam/geofence-platform-.git
+cd geofence-platform-
+
+# 2. Create and activate virtual environment
+python -m venv venv
+.\venv\Scripts\Activate
+
+# 3. Install backend dependencies
+pip install -r requirements.txt
+
+# 4. Create .env file
+@"
+SECRET_KEY=your-secret-key-change-in-production
+USE_SQLITE=true
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+"@ | Out-File -FilePath .env -Encoding utf8
+
+# 5. Start backend server (Terminal 1)
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 6. Open a new terminal, then install and run frontend (Terminal 2)
+cd frontend
+npm install
+npm run dev
+```
+
+### macOS / Linux (Terminal)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Avichal-Datavedam/geofence-platform-.git
+cd geofence-platform-
+
+# 2. Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# 3. Install backend dependencies
+pip install -r requirements.txt
+
+# 4. Create .env file
+cat > .env << EOF
+SECRET_KEY=your-secret-key-change-in-production
+USE_SQLITE=true
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+EOF
+
+# 5. Start backend server (Terminal 1)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 6. Open a new terminal, then install and run frontend (Terminal 2)
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Access the Application
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost:3000 |
+| **Backend API** | http://localhost:8000 |
+| **API Docs (Swagger)** | http://localhost:8000/docs |
+| **API Docs (ReDoc)** | http://localhost:8000/redoc |
+| **Health Check** | http://localhost:8000/health |
+
+---
 
 ## Architecture
 
