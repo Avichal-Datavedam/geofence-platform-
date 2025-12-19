@@ -21,6 +21,7 @@ class User(BaseModel):
     # Relationships
     roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
     assets = relationship("Asset", back_populates="owner", lazy="dynamic")
+    geofence_access = relationship("GeofenceAccess", foreign_keys="GeofenceAccess.user_id", back_populates="user", lazy="dynamic")
     
     def __repr__(self):
         return f"<User {self.username}>"

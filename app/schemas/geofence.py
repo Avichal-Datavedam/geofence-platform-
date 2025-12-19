@@ -2,7 +2,7 @@
 Geofence schemas
 """
 from pydantic import BaseModel, Field, validator
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
@@ -44,6 +44,13 @@ class GeofenceUpdate(BaseModel):
     priority: Optional[int] = Field(None, ge=1, le=5)
 
 
+class AccessInfo(BaseModel):
+    """Brief access info for geofence response"""
+    user_id: str
+    username: Optional[str] = None
+    access_level: str
+
+
 class GeofenceResponse(BaseModel):
     """Geofence response schema"""
     id: str
@@ -58,6 +65,7 @@ class GeofenceResponse(BaseModel):
     organization_id: Optional[str]
     created_at: datetime
     updated_at: datetime
+    access_list: Optional[List[AccessInfo]] = None
     
     class Config:
         from_attributes = True

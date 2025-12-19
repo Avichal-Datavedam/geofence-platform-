@@ -46,6 +46,7 @@ class Settings(BaseSettings):
         return [header.strip() for header in self.CORS_ALLOW_HEADERS.split(",")]
     
     # Database - Default to SQLite for quick start
+    USE_SQLITE: bool = True
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./geofence_dev.db")
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10

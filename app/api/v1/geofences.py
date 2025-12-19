@@ -9,7 +9,7 @@ from uuid import UUID
 from app.core.database import get_db
 from app.core.dependencies import AuthDependency, require_read, require_write, require_delete
 from app.models.user import User
-from app.schemas.geofence import GeofenceCreate, GeofenceUpdate, GeofenceResponse, GeofenceListResponse
+from app.schemas.geofence import GeofenceCreate, GeofenceUpdate, GeofenceResponse, GeofenceListResponse, AccessInfo
 from app.services.geofence_service import GeofenceService
 from geoalchemy2.shape import to_shape
 from shapely.geometry import mapping
@@ -17,12 +17,24 @@ from shapely.geometry import mapping
 router = APIRouter(prefix="/geofences", tags=["Geofences"])
 
 
-def _geofence_to_response(geofence) -> GeofenceResponse:
+def _geofence_to_response(geofence, include_access: bool = False) -> GeofenceResponse:
     """Convert geofence model to response schema"""
     geometry_shape = to_shape(geofence.geometry)
     center_shape = to_shape(geofence.center_point)
     
     from app.schemas.geofence import Point
+    
+    # Build access list if requested and available
+    access_list = None
+    if include_access and hasattr(geofence, 'access_list') and geofence.access_list:
+        access_list = [
+            AccessInfo(
+                user_id=str(access.user_id),
+                username=access.user.username if access.user else None,
+                access_level=access.access_level
+            )
+            for access in geofence.access_list
+        ]
     
     return GeofenceResponse(
         id=str(geofence.id),
@@ -39,7 +51,8 @@ def _geofence_to_response(geofence) -> GeofenceResponse:
         priority=geofence.priority,
         organization_id=str(geofence.organization_id) if geofence.organization_id else None,
         created_at=geofence.created_at,
-        updated_at=geofence.updated_at
+        updated_at=geofence.updated_at,
+        access_list=access_list
     )
 
 
@@ -83,6 +96,7 @@ async def create_geofence(
 @router.get("/{geofence_id}", response_model=GeofenceResponse)
 async def get_geofence(
     geofence_id: str,
+    include_access: bool = Query(False, description="Include access list in response"),
     current_user: User = Depends(require_read),
     db: Session = Depends(get_db)
 ):
@@ -90,7 +104,7 @@ async def get_geofence(
     geofence = GeofenceService.get_geofence(db, UUID(geofence_id))
     if not geofence:
         raise HTTPException(status_code=404, detail="Geofence not found")
-    return _geofence_to_response(geofence)
+    return _geofence_to_response(geofence, include_access=include_access)
 
 
 @router.put("/{geofence_id}", response_model=GeofenceResponse)

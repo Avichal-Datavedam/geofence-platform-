@@ -38,6 +38,7 @@ class Geofence(BaseModel):
     
     zones = relationship("Zone", back_populates="geofence", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="geofence", lazy="dynamic")
+    access_list = relationship("GeofenceAccess", back_populates="geofence", cascade="all, delete-orphan")
     
     # Spatial indexes (only for PostgreSQL)
     __table_args__ = (
