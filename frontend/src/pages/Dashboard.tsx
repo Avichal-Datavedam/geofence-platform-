@@ -4,9 +4,9 @@ import {
   Hexagon,
   Package,
   Bell,
-  AlertTriangle,
   TrendingUp,
   MapPin,
+  Shield,
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import AIChatWidget from '../components/AIChatWidget'
@@ -27,34 +27,50 @@ const Dashboard = () => {
     queryFn: () => notificationApi.list({ per_page: 50, status: 'active' }),
   })
 
+  const geofenceData = geofences as any
+  const assetData = assets as any
+  const notificationData = notifications as any
+
   const stats = [
     {
       name: 'Active Geofences',
-      value: geofences?.total || 0,
+      value: geofenceData?.total || geofenceData?.items?.length || 0,
       icon: Hexagon,
-      color: 'bg-blue-500',
+      color: 'from-blue-500 to-blue-600',
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
       change: '+12%',
+      positive: true,
     },
     {
       name: 'Tracked Assets',
-      value: assets?.length || 0,
+      value: assetData?.length || assetData?.items?.length || 0,
       icon: Package,
-      color: 'bg-green-500',
+      color: 'from-emerald-500 to-emerald-600',
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
       change: '+5%',
+      positive: true,
     },
     {
       name: 'Active Alerts',
-      value: notifications?.length || 0,
+      value: notificationData?.length || notificationData?.items?.length || 0,
       icon: Bell,
-      color: 'bg-red-500',
+      color: 'from-amber-500 to-amber-600',
+      bgColor: 'bg-amber-50',
+      iconColor: 'text-amber-600',
       change: '-3%',
+      positive: false,
     },
     {
-      name: 'Critical Alerts',
-      value: notifications?.filter((n: any) => n.severity === 'critical').length || 0,
-      icon: AlertTriangle,
-      color: 'bg-orange-500',
-      change: '+2%',
+      name: 'System Health',
+      value: '99.9%',
+      icon: Shield,
+      color: 'from-violet-500 to-violet-600',
+      bgColor: 'bg-violet-50',
+      iconColor: 'text-violet-600',
+      change: '+0.1%',
+      positive: true,
     },
   ]
 
@@ -167,23 +183,23 @@ const Dashboard = () => {
       {/* Recent Notifications and AI Chat */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         {/* Recent Notifications */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Notifications</h2>
-          <div className="space-y-4">
-            {notifications?.slice(0, 5).map((notification: any) => (
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Notifications</h2>
+          <div className="space-y-3">
+            {(notificationData?.items || notificationData || [])?.slice?.(0, 5)?.map((notification: any) => (
               <div
                 key={notification.id}
-                className="flex items-start p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-start p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
               >
-                <div className={`p-2 rounded ${
+                <div className={`p-2 rounded-lg ${
                   notification.severity === 'critical' ? 'bg-red-100' :
                   notification.severity === 'high' ? 'bg-orange-100' :
-                  'bg-yellow-100'
+                  'bg-amber-100'
                 }`}>
                   <Bell className={`h-4 w-4 ${
                     notification.severity === 'critical' ? 'text-red-600' :
                     notification.severity === 'high' ? 'text-orange-600' :
-                    'text-yellow-600'
+                    'text-amber-600'
                   }`} />
                 </div>
                 <div className="ml-3 flex-1">
@@ -195,7 +211,12 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-8 text-gray-400">
+                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No recent notifications</p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import get_settings
 from app.api.v1 import api_router
 from app.core.database import Base, engine, DB_AVAILABLE
-from app.models import ai_service, asset, geofence, geofence_access, notification, organization, rbac, user, zone
+from app.models import ai_service, api_key, asset, geofence, geofence_access, notification, organization, rbac, user, zone
 import logging
 
 settings = get_settings()

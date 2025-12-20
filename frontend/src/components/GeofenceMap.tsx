@@ -3,7 +3,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw'
 import 'leaflet-draw/dist/leaflet.draw.css'
-import { Lasso, Pentagon, Square, Circle, Trash2 } from 'lucide-react'
+import { Lasso, Circle, Trash2 } from 'lucide-react'
 
 // Fix for default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -17,11 +17,12 @@ interface GeofenceMapProps {
   onGeometryCreated: (geometry: any, center: { lat: number; lng: number }) => void
   existingGeofences?: any[]
   height?: string
+  showSearch?: boolean
 }
 
-type DrawingMode = 'none' | 'lasso' | 'polygon' | 'rectangle' | 'circle'
+type DrawingMode = 'none' | 'lasso' | 'circle'
 
-const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400px' }: GeofenceMapProps) => {
+const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '500px' }: GeofenceMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null)
@@ -109,18 +110,20 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
       lassoPolylineRef.current = null
     }
     lassoPointsRef.current = []
+    isDrawingRef.current = false
+
+    // Disable any active handlers first
+    if (drawHandlersRef.current.circle) {
+      drawHandlersRef.current.circle.disable()
+    }
 
     setDrawingMode(mode)
 
     if (mode === 'lasso') {
       // Enable lasso mode - we'll handle this with mouse events
       map.dragging.disable()
-      isDrawingRef.current = false
-    } else if (mode === 'polygon' && drawHandlersRef.current.polygon) {
-      drawHandlersRef.current.polygon.enable()
-    } else if (mode === 'rectangle' && drawHandlersRef.current.rectangle) {
-      drawHandlersRef.current.rectangle.enable()
     } else if (mode === 'circle' && drawHandlersRef.current.circle) {
+      map.dragging.enable()
       drawHandlersRef.current.circle.enable()
     }
   }
@@ -150,8 +153,6 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
     }
 
     drawHandlersRef.current = {
-      polygon: new (L.Draw as any).Polygon(map, { shapeOptions, allowIntersection: false }),
-      rectangle: new (L.Draw as any).Rectangle(map, { shapeOptions }),
       circle: new (L.Draw as any).Circle(map, { shapeOptions })
     }
 
@@ -161,9 +162,13 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
       setDrawingMode('none')
     })
 
-    // Lasso drawing with mouse events
-    map.on('mousedown', (e: L.LeafletMouseEvent) => {
+    // Lasso drawing with mouse events - only active when in lasso mode
+    const handleMouseDown = (e: L.LeafletMouseEvent) => {
       if (drawingModeRef.current !== 'lasso') return
+      
+      // Prevent default to avoid map interactions
+      L.DomEvent.stopPropagation(e)
+      
       isDrawingRef.current = true
       lassoPointsRef.current = [e.latlng]
       
@@ -172,21 +177,21 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
       }
       lassoPolylineRef.current = L.polyline([e.latlng], {
         color: '#6366f1',
-        weight: 2,
+        weight: 3,
         dashArray: '5, 5'
       }).addTo(map)
-    })
+    }
 
-    map.on('mousemove', (e: L.LeafletMouseEvent) => {
+    const handleMouseMove = (e: L.LeafletMouseEvent) => {
       if (!isDrawingRef.current || drawingModeRef.current !== 'lasso') return
       
       lassoPointsRef.current.push(e.latlng)
       if (lassoPolylineRef.current) {
         lassoPolylineRef.current.addLatLng(e.latlng)
       }
-    })
+    }
 
-    map.on('mouseup', () => {
+    const handleMouseUp = () => {
       if (!isDrawingRef.current || drawingModeRef.current !== 'lasso') return
       isDrawingRef.current = false
       map.dragging.enable()
@@ -211,11 +216,21 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
         }
 
         processGeometry(polygon, 'lasso')
+      } else {
+        // Clear if not enough points
+        if (lassoPolylineRef.current) {
+          map.removeLayer(lassoPolylineRef.current)
+          lassoPolylineRef.current = null
+        }
       }
       
       lassoPointsRef.current = []
       setDrawingMode('none')
-    })
+    }
+
+    map.on('mousedown', handleMouseDown)
+    map.on('mousemove', handleMouseMove)
+    map.on('mouseup', handleMouseUp)
 
     mapInstanceRef.current = map
 
@@ -294,16 +309,24 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
 
   const tools = [
     { mode: 'lasso' as DrawingMode, icon: Lasso, label: 'Lasso (Freehand)', desc: 'Click and drag to draw freely' },
-    { mode: 'polygon' as DrawingMode, icon: Pentagon, label: 'Polygon', desc: 'Click points to create shape' },
-    { mode: 'rectangle' as DrawingMode, icon: Square, label: 'Rectangle', desc: 'Click and drag' },
     { mode: 'circle' as DrawingMode, icon: Circle, label: 'Circle', desc: 'Click center, drag radius' },
   ]
 
+  // Force map resize when container changes
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (map) {
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 100)
+    }
+  }, [height])
+
   return (
-    <div className="relative">
+    <div className="geofence-map-container" style={{ height }}>
       <div 
         ref={mapRef} 
-        style={{ height, width: '100%' }}
+        style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         className={`rounded-xl overflow-hidden border-2 shadow-sm transition-colors ${
           drawingMode === 'lasso' ? 'border-primary-500 cursor-crosshair' : 'border-gray-200'
         }`}
@@ -353,10 +376,6 @@ const GeofenceMap = ({ onGeometryCreated, existingGeofences = [], height = '400p
         <p className="text-xs text-gray-600">
           {drawingMode === 'lasso' 
             ? '🖱️ Click and drag to draw a freehand shape. Release to complete.'
-            : drawingMode === 'polygon'
-            ? '🖱️ Click on map to add points. Double-click to finish.'
-            : drawingMode === 'rectangle'
-            ? '🖱️ Click and drag to draw rectangle.'
             : drawingMode === 'circle'
             ? '🖱️ Click center point, drag for radius.'
             : '👆 Select a drawing tool from the left panel to start.'}

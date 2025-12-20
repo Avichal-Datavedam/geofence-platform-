@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS extension for geospatial data
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: geofence-db
+    environment:
+      POSTGRES_USER: geofence_user
+      POSTGRES_PASSWORD: geofence_password
+      POSTGRES_DB: geofence_db
+    ports:
+      - "5433:5432"  # Using 5433 to avoid conflict with local PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geofence_user -d geofence_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for caching and real-time features
+  redis:
+    image: redis:7-alpine
+    container_name: geofence-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: geofence-backend
+    environment:
+      - DATABASE_URL=postgresql://geofence_user:geofence_password@db:5432/geofence_db
+      - USE_SQLITE=false
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:3003
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
+
+  # Database Admin UI (Adminer)
+  adminer:
+    image: adminer:latest
+    container_name: geofence-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # React Frontend (optional - can run separately with npm)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: geofence-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

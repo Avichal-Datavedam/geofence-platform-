@@ -316,7 +316,7 @@ const Geofences = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
               {/* Map Section */}
-              <div>
+              <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium text-gray-700">
                     <Map className="inline h-4 w-4 mr-1" />
@@ -336,13 +336,15 @@ const Geofences = () => {
                 </div>
                 
                 {useMapDrawing ? (
-                  <GeofenceMap
-                    onGeometryCreated={handleGeometryCreated}
-                    existingGeofences={data?.items || []}
-                    height="350px"
-                  />
+                  <div className="relative" style={{ height: '400px', minHeight: '400px' }}>
+                    <GeofenceMap
+                      onGeometryCreated={handleGeometryCreated}
+                      existingGeofences={data?.items || []}
+                      height="400px"
+                    />
+                  </div>
                 ) : (
-                  <div className="h-[350px] bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                  <div className="h-[400px] bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
                     <div className="text-center text-gray-500">
                       <Map className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>Map drawing disabled</p>

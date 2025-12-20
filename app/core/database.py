@@ -2,7 +2,7 @@
 Database configuration and session management
 PostgreSQL with PostGIS support, with SQLite fallback
 """
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool, StaticPool
@@ -42,7 +42,7 @@ else:
         
         # Test connection
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         
         # Enable PostGIS extension on connection (only for PostgreSQL)
         @event.listens_for(engine, "connect")
